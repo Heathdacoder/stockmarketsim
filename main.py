@@ -65,12 +65,19 @@ def sell_stock():
         portfolio[stock] -= amount
         print(f"Sold {amount} shares of {stock}")
 
+def show_total_value():
+    total = portfolio["cash"]
+    for stock in stocks:
+        total += portfolio[stock] * stocks[stock]
+    print(f"Total Portfolio Value: ${total:.2f}")
+
 def main():
     days = 0
     while True:
         print(f"\nDay {days}")
         show_prices()
         show_portfolio()
+        show_total_value()
         print("1. Buy")
         print("2. Sell")
         print("3. Next Day")
