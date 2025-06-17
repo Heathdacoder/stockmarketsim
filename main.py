@@ -26,7 +26,7 @@ def show_portfolio():
 
 def update_prices():
     for stock in stocks:
-        change = random.uniform(-0.05, 0.05)
+        change = random.uniform(-0.05, 0.05) #gives you a random floating point number in the range [a, b]
         stocks[stock] *= (1 + change)
 
 def buy_stock():
