@@ -14,7 +14,8 @@ stocks = {
     "S&P 500": [6204.95],
     "NKE": [110.00],
     "BAC": [28.00],
-    "MSFT": [1330.00]
+    "MSFT": [1330.00],
+    "UK GOV BOND": [50,000]
 
 
 }
@@ -30,7 +31,8 @@ portfolio = {
     "S&P 500": 0,
     "NKE": 0,
     "BAC": 0,
-    "MSFT": 0
+    "MSFT": 0,
+    "UK GOV BOND": 0
 }
 
 day = 0
@@ -103,7 +105,7 @@ def update_display():
         info += f"{stock}: ${current_price:.2f}\n"
 
     info += "\nPortfolio:\n"
-    for stock in ["AAPL", "GOOG", "TSLA", "Nasdaq","SMSG","FTSE 100","S&P 500","NKE","BAC","MSFT"]:
+    for stock in ["AAPL", "GOOG", "TSLA", "Nasdaq","SMSG","FTSE 100","S&P 500","NKE","BAC","MSFT","UK GOV BOND"]:
         info += f"{stock}: {portfolio[stock]} shares\n"
 
     info += f"\nCash: ${portfolio['cash']:.2f}"
