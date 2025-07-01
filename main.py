@@ -103,7 +103,7 @@ def update_display():
         info += f"{stock}: ${current_price:.2f}\n"
 
     info += "\nPortfolio:\n"
-    for stock in ["AAPL", "GOOG", "TSLA", "FTSE 100", "SMSG"]:
+    for stock in ["AAPL", "GOOG", "TSLA", "Nasdaq","SMSG","FTSE 100","S&P 500","NKE","BAC","MSFT"]:
         info += f"{stock}: {portfolio[stock]} shares\n"
 
     info += f"\nCash: ${portfolio['cash']:.2f}"
