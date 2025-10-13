@@ -14,7 +14,7 @@ class Stock:
 
     def update_price(self):
         last = self.prices[-1]
-        change = random.gauss(1.0, 0.02)  # random small change
+        change = random.gauss(1.0, 0.02)
         new_price = max(1, last * change)
         self.prices.append(new_price)
         self.dates.append(datetime.datetime.now())
@@ -28,6 +28,7 @@ class Portfolio:
         self.cash = cash
         self.holdings = {}
         self.history = []  # (time, total value)
+        self.realised_profit = 0.0  # Track realised P&L
 
     def buy(self, stock, amount):
         cost = stock.current_price() * amount
@@ -39,7 +40,10 @@ class Portfolio:
 
     def sell(self, stock, amount):
         if amount > 0 and stock.symbol in self.holdings and self.holdings[stock.symbol] >= amount:
-            self.cash += stock.current_price() * amount
+            sell_value = stock.current_price() * amount
+            buy_price = stock.prices[0]
+            self.realised_profit += (stock.current_price() - buy_price) * amount
+            self.cash += sell_value
             self.holdings[stock.symbol] -= amount
             if self.holdings[stock.symbol] == 0:
                 del self.holdings[stock.symbol]
@@ -51,6 +55,13 @@ class Portfolio:
         for sym, stock in market.stocks.items():
             total += self.holdings.get(sym, 0) * stock.current_price()
         return total
+
+    def unrealised_profit(self, market):
+        profit = 0
+        for sym, qty in self.holdings.items():
+            stock = market.stocks[sym]
+            profit += (stock.current_price() - stock.prices[0]) * qty
+        return profit
 
     def record_history(self, market):
         now = datetime.datetime.now()
@@ -90,7 +101,6 @@ class Market:
         for stock in self.stocks.values():
             stock.update_price()
 
-        # small chance of random event
         if random.random() < 0.15:
             sym, desc, factor = random.choice(self.events)
             stock = self.stocks[sym]
@@ -98,6 +108,82 @@ class Market:
             messagebox.showinfo("Market News", f"{desc}\n({sym}: x{factor:.2f})")
             return sym
         return None
+
+
+class PortfolioWindow(tk.Toplevel):
+    def __init__(self, parent, market, portfolio):
+        super().__init__(parent)
+        self.title("Portfolio Overview")
+        self.geometry("1000x700")
+        self.configure(bg="#1e1e2e")
+
+        self.market = market
+        self.portfolio = portfolio
+
+        plt.style.use("dark_background")
+        fig, ax = plt.subplots(figsize=(9, 4), dpi=100)
+
+        if portfolio.history:
+            times, values = zip(*portfolio.history)
+            ax.plot(times, values, color="lime", marker="o", linewidth=2)
+            ax.set_title("Portfolio Value Over Time", fontsize=14)
+            ax.set_xlabel("Date/Time")
+            ax.set_ylabel("Total Value ($)")
+            ax.grid(True, linestyle="--", alpha=0.5)
+        else:
+            ax.text(0.5, 0.5, "No portfolio history yet.\nAdvance at least one day.",
+                    ha='center', va='center', color='gray', fontsize=14)
+
+        canvas = FigureCanvasTkAgg(fig, master=self)
+        canvas.draw()
+        canvas.get_tk_widget().pack(fill="both", expand=True, padx=20, pady=20)
+        NavigationToolbar2Tk(canvas, self).update()
+
+        pnl_frame = tk.Frame(self, bg="#1e1e2e")
+        pnl_frame.pack(fill="x", pady=15)
+
+        unrealised = portfolio.unrealised_profit(market)
+        realised = portfolio.realised_profit
+
+        tk.Label(pnl_frame, text=f"Unrealised P&L: ${unrealised:,.2f}",
+                 bg="#1e1e2e", fg="orange", font=("Consolas", 14)).pack(side="left", padx=30)
+        tk.Label(pnl_frame, text=f"Realised P&L: ${realised:,.2f}",
+                 bg="#1e1e2e", fg="lime", font=("Consolas", 14)).pack(side="right", padx=30)
+
+        rec_frame = tk.LabelFrame(self, text="Recommended Stocks", bg="#1e1e2e", fg="white", font=("Segoe UI", 13, "bold"))
+        rec_frame.pack(fill="both", expand=True, padx=20, pady=10)
+
+        ttk.Style().configure("Treeview", background="#2a2a40", foreground="white", rowheight=28, fieldbackground="#2a2a40")
+
+        self.recommend_table = ttk.Treeview(rec_frame, columns=("Symbol", "Change"), show="headings", height=10)
+        self.recommend_table.heading("Symbol", text="Symbol")
+        self.recommend_table.heading("Change", text="Recent % Change")
+        self.recommend_table.column("Symbol", anchor="center", width=120)
+        self.recommend_table.column("Change", anchor="center", width=150)
+        self.recommend_table.pack(fill="both", expand=True, padx=5, pady=5)
+
+        self.update_recommendations()
+
+    def update_recommendations(self):
+        def get_change(item):
+            return item[1]
+
+        def update_recommendations(self):
+            for row in self.recommend_table.get_children():
+                self.recommend_table.delete(row)
+
+            changes = []
+            for symbol, stock in self.market.stocks.items():
+                if len(stock.prices) > 1:
+                    old_price = stock.prices[-2]
+                    new_price = stock.prices[-1]
+                    change = ((new_price - old_price) / old_price) * 100
+                    changes.append((symbol, change))
+
+            changes.sort(key=get_change, reverse=True)
+
+            for symbol, change in changes[:5]:
+                self.recommend_table.insert("", "end", values=(symbol, f"{change:+.2f}%"))
 
 
 class StockApp:
@@ -132,7 +218,7 @@ class StockApp:
         ttk.Button(control, text="Sell", command=self.sell_stock).grid(row=0, column=3, padx=10)
         ttk.Button(control, text="Next Day", command=self.next_day).grid(row=0, column=4, padx=10)
         ttk.Button(control, text="Stock Graph", command=self.show_graph).grid(row=0, column=5, padx=10)
-        ttk.Button(control, text="Portfolio Graph", command=self.show_portfolio_graph).grid(row=0, column=6, padx=10)
+        ttk.Button(control, text="Portfolio", command=self.open_portfolio_window).grid(row=0, column=6, padx=10)
 
         dash = tk.Frame(root, bg="#1e1e2e")
         dash.pack(fill="both", expand=True, padx=20, pady=20)
@@ -234,30 +320,8 @@ class StockApp:
         canvas.get_tk_widget().pack(fill="both", expand=True)
         NavigationToolbar2Tk(canvas, win).update()
 
-    def show_portfolio_graph(self):
-        if not self.portfolio.history:
-            messagebox.showinfo("No Data", "Advance at least one day first.")
-            return
-
-        win = tk.Toplevel(self.root)
-        win.title("Portfolio Performance")
-        win.geometry("900x600")
-        win.configure(bg="#1e1e2e")
-
-        plt.style.use("dark_background")
-        fig, ax = plt.subplots(figsize=(9, 5), dpi=100)
-
-        times, values = zip(*self.portfolio.history)
-        ax.plot(times, values, color="lime", marker="o", linewidth=2)
-        ax.set_title("Portfolio Value Over Time", fontsize=14)
-        ax.set_xlabel("Date/Time")
-        ax.set_ylabel("Total Value ($)")
-        ax.grid(True, linestyle="--", alpha=0.5)
-
-        canvas = FigureCanvasTkAgg(fig, master=win)
-        canvas.draw()
-        canvas.get_tk_widget().pack(fill="both", expand=True)
-        NavigationToolbar2Tk(canvas, win).update()
+    def open_portfolio_window(self):
+        PortfolioWindow(self.root, self.market, self.portfolio)
 
 
 if __name__ == "__main__":
