@@ -29,7 +29,7 @@ HISTORY_FILE = "history.json"
 TRANSACTIONS_FILE = "transactions.json"
 
 
-# --- DATA CLASSES ---
+#DATA CLASSES
 
 class Stock:
     def __init__(self, symbol):
@@ -437,6 +437,7 @@ class StockApp:
         ttk.Button(control, text="Portfolio", command=self.open_portfolio_window).grid(row=0, column=5, padx=10)
         ttk.Button(control, text="Txn Log", command=self.open_transaction_window).grid(row=0, column=6, padx=10)
         ttk.Button(control, text="Restart", command=self.restart_portfolio).grid(row=0, column=7, padx=10)
+        ttk.Button(control, text="Help", command=self.show_help).grid(row=0, column=8, padx=10)
 
         dash = tk.Frame(root, bg="#1e1e2e")
         dash.pack(fill="both", expand=True, padx=20, pady=20)
@@ -523,6 +524,25 @@ class StockApp:
                 if os.path.exists(f): os.remove(f)
             self.portfolio = Portfolio()
             self.update_display()
+
+    def show_help(self):
+        #Create a new pop up window
+        help_win = tk.Toplevel(self.root)
+        help_win.title("Help Guide")
+        #image file name
+        image_filename = "Screenshot 2026-01-08 at 11.32.17.png"
+        #Load image
+        img = tk.PhotoImage(file=image_filename)
+
+        #image has too many pixels per inch, so have to zoom
+        zoom_out_factor = 2
+        img = img.subsample(zoom_out_factor, zoom_out_factor)
+
+
+        #Creates a label to hold the image
+        lbl = tk.Label(help_win, image=img)
+        lbl.image = img  #keeps a reference of the screenshot.
+        lbl.pack()
 
     def update_data(self, initial_fetch=False):
         for stock in self.stocks.values():
