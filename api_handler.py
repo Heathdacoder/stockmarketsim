@@ -5,7 +5,7 @@ def load_api_key():
     I separated this into a function so it's easier to manage or hide later
     if I decide to upload this project to GitHub.
     """
-    return "d6u1b19r01qp1k9aqk5gd6u1b19r01qp1k9aqk60"
+    return "enter api key here please."
 
 API_KEY = load_api_key()
 
